@@ -1,4 +1,4 @@
-if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+1if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
 if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
 if(!require(data.table)) install.packages("data.table", repos = "http://cran.us.r-project.org")
 if(!require(foreign)) install.packages("foreign")
@@ -301,5 +301,7 @@ Sensitivity_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Sensitivity"
 Specificity_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Specificity"]
 Bal.Accuracy_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Balanced Accuracy"]
 
-
-
+#Try to improve our model with ensemble strategy
+ensemble<-data.frame(pre_GLM,pre_rf,pre_rpart)
+pre_ensemble<-as.factor(ifelse(rowMeans(ensemble==1)>0.5,1,0))
+confusionMatrix(pre_ensemble,test_set$Disease)
