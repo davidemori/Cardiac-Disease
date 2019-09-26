@@ -231,7 +231,7 @@ ggcorr(cor(matrix(as.numeric(unlist(data)),nrow=nrow(data))),label=TRUE,nbreaks 
     ggtitle("Correlation Plot")
 
 #Removing variables with low correlation with our target variable ("Disease")
-#data<-data[,c(1,2,3,8,9,10,11,12,13,14)]
+#data<-data[,c(1,2,3,6,8,9,10,11,12,13,14)]
 
                                                             #TESTING DATASET
 #We start with a simple guess model, just to evaluate the power of our furthers models for predicting Disease presence or not.
@@ -247,12 +247,45 @@ train_set<-data[-test_index,] #crating training set
 
                                                                 #MODELING
 nzv<-nearZeroVar(data, saveMetrics = TRUE) #check for zero variance variables.
-
+nzv #no zero variance variables
 
 # Define train control for k-fold (10-fold here) cross validation
 fitControl <- trainControl(method = "cv",number = 10, savePredictions = TRUE)
 
-#starting with a Logistic Regression Model
+#starting with a KNN Model
+set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
+fit_KNN<-train(Disease~., data= train_set, method="knn", tuneGrid=data.frame(k=seq(1,30,1)),trControl=fitControl) #fit model and try some k's
+pre_KNN<-predict(fit_KNN,test_set) #predict results
+confusionMatrix(pre_KNN,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+#saving parameters and print the results
+Accuracy_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$overall["Accuracy"]
+Sensitivity_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Sensitivity"]
+Specificity_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Specificity"]
+Bal.Accuracy_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Balanced Accuracy"]
+
+results <- tribble(
+    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
+    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN)
+results
+
+#Adaboost Classification trees model
+set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
+fit_ada<-train(Disease~.,data=train_set, method="adaboost",trControl=fitControl) #fit model
+pre_ada<-predict(fit_ada,test_set) #predict results
+confusionMatrix(pre_ada,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+#saving parameters
+Accuracy_ada <- confusionMatrix(pre_ada,test_set$Disease)$overall["Accuracy"]
+Sensitivity_ada <- confusionMatrix(pre_ada,test_set$Disease)$byClass["Sensitivity"]
+Specificity_ada <- confusionMatrix(pre_ada,test_set$Disease)$byClass["Specificity"]
+Bal.Accuracy_ada <- confusionMatrix(pre_ada,test_set$Disease)$byClass["Balanced Accuracy"]
+
+results <- tribble(
+    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
+    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
+    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada)
+results
+
+#Logistic Regression Model
 set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
 fit_GLM<-train(Disease~., data= train_set, method="glm", family="binomial", trControl=fitControl) #fit model
 pre_GLM<-predict(fit_GLM,test_set) #predict results
@@ -263,18 +296,14 @@ Sensitivity_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$byClass["Sensitivit
 Specificity_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$byClass["Specificity"]
 Bal.Accuracy_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$byClass["Balanced Accuracy"]
 
-#KNN model
-set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
-fit_KNN<-train(Disease~., data= train_set, method="knn", tuneGrid=data.frame(k=seq(1,30,1)),trControl=fitControl) #fit model and try some k's
-pre_KNN<-predict(fit_KNN,test_set) #predict results
-confusionMatrix(pre_KNN,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
-#saving parameters
-Accuracy_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$overall["Accuracy"]
-Sensitivity_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Sensitivity"]
-Specificity_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Specificity"]
-Bal.Accuracy_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Balanced Accuracy"]
+results <- tribble(
+    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
+    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
+    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada,
+    "General Logistic Regression Model", Accuracy_GLM,  Sensitivity_GLM, Specificity_GLM,Bal.Accuracy_GLM)
+results
 
-#rpart model
+#Decision tree Model
 set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
 fit_rpart<-train(Disease~., data= train_set, method="rpart",trControl=fitControl) #fit model
 pre_rpart<-predict(fit_rpart,test_set) #predict results
@@ -285,6 +314,13 @@ Sensitivity_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$byClass["Sensit
 Specificity_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$byClass["Specificity"]
 Bal.Accuracy_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$byClass["Balanced Accuracy"]
 
+results <- tribble(
+    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
+    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
+    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada,
+    "General Logistic Regression Model", Accuracy_GLM,  Sensitivity_GLM, Specificity_GLM,Bal.Accuracy_GLM,
+    "Decision Tree Model", Accuracy_rpart,Sensitivity_rpart,Specificity_rpart,Bal.Accuracy_rpart)
+results
 
 #Random Forest model
 set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
@@ -297,8 +333,17 @@ Sensitivity_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Sensitivity"
 Specificity_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Specificity"]
 Bal.Accuracy_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Balanced Accuracy"]
 
+results <- tribble(
+    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
+    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
+    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada,
+    "General Logistic Regression Model", Accuracy_GLM,  Sensitivity_GLM, Specificity_GLM,Bal.Accuracy_GLM,
+    "Decision Tree Model", Accuracy_rpart,Sensitivity_rpart,Specificity_rpart,Bal.Accuracy_rpart,
+    "Random Forest", Accuracy_rf,  Sensitivity_rf, Specificity_rf,Bal.Accuracy_rf)
+results
+
 #Try to improve our model with ensemble strategy
-ensemble<-data.frame(pre_GLM,pre_rf,pre_rpart)
+ensemble<-data.frame(pre_GLM,pre_rf,pre_ada)
 pre_ensemble<-as.factor(ifelse(rowMeans(ensemble==1)>0.5,1,0))
 confusionMatrix(pre_ensemble,test_set$Disease)
 #saving parameters
@@ -307,5 +352,23 @@ Sensitivity_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Sensi
 Specificity_ens<- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Specificity"]
 Bal.Accuracy_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Balanced Accuracy"]
 
-pre_ensemble!=test_set$Disease
-test_set[pre_ensemble!=test_set$Disease,]
+
+
+results <- tribble(
+    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
+    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
+    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada,
+    "General Logistic Regression Model", Accuracy_GLM,  Sensitivity_GLM, Specificity_GLM,Bal.Accuracy_GLM,
+    "Decision Tree Model", Accuracy_rpart,Sensitivity_rpart,Specificity_rpart,Bal.Accuracy_rpart,
+    "Random Forest", Accuracy_rf,  Sensitivity_rf, Specificity_rf,Bal.Accuracy_rf,
+    "Ensamble Model",Accuracy_ens,Sensitivity_ens,Specificity_ens,Bal.Accuracy_ens
+)
+results
+
+
+
+##########################  end  #########################
+
+
+
+
