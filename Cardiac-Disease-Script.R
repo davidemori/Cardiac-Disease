@@ -1,4 +1,4 @@
-1if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
 if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
 if(!require(data.table)) install.packages("data.table", repos = "http://cran.us.r-project.org")
 if(!require(foreign)) install.packages("foreign")
@@ -231,7 +231,7 @@ ggcorr(cor(matrix(as.numeric(unlist(data)),nrow=nrow(data))),label=TRUE,nbreaks 
     ggtitle("Correlation Plot")
 
 #Removing variables with low correlation with our target variable ("Disease")
-data<-data[,c(1,2,3,8,9,10,11,12,13,14)]
+#data<-data[,c(1,2,3,8,9,10,11,12,13,14)]
 
                                                             #TESTING DATASET
 #We start with a simple guess model, just to evaluate the power of our furthers models for predicting Disease presence or not.
@@ -274,10 +274,6 @@ Sensitivity_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Sensitivit
 Specificity_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Specificity"]
 Bal.Accuracy_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Balanced Accuracy"]
 
-#Naive Bayes model
-
-
-
 #rpart model
 set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
 fit_rpart<-train(Disease~., data= train_set, method="rpart",trControl=fitControl) #fit model
@@ -305,3 +301,11 @@ Bal.Accuracy_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Balanced Ac
 ensemble<-data.frame(pre_GLM,pre_rf,pre_rpart)
 pre_ensemble<-as.factor(ifelse(rowMeans(ensemble==1)>0.5,1,0))
 confusionMatrix(pre_ensemble,test_set$Disease)
+#saving parameters
+Accuracy_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$overall["Accuracy"]
+Sensitivity_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Sensitivity"]
+Specificity_ens<- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Specificity"]
+Bal.Accuracy_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Balanced Accuracy"]
+
+pre_ensemble!=test_set$Disease
+test_set[pre_ensemble!=test_set$Disease,]
