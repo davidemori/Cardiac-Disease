@@ -1,0 +1,321 @@
+---
+number_sections: yes
+author: "Davide Mori"
+date: "26/9/2019"
+output:
+  pdf_document: default
+  number_sections: default
+theme: lumen
+title: "Heart Disease predicting model"
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# HarvardX: PH125.9 
+## Data Science Professional Certificate: Capstone - "Choose Your Own Project Submission"
+
+
+You can find this project on Github Website at: https://github.com/davidemori/Cardiac-Disease
+
+
+## Introduction
+Of the 56.9 million deaths worldwide in 2016, more than half (54%) were due to the top 10 causes. Ischaemic heart disease and stroke are the world’s biggest killers, accounting for a combined 15.2 million deaths in 2016. These diseases have remained the leading causes of death globally in the last 15 years(World Health Organization, 2019). The aim of this project is to analyze the causes and try to find a model to predict, on the basis of some parameters, the occurence of an heart disease.
+
+Many datasets about Medical Sciences, and in particular about heart diseases, are free downloadable on the "WEB". For the following project we have used a subset of the "Cleveland Heart Disease Dataset" from the UCI Archives, that can be found at the following link: http://archive.ics.uci.edu/ml/datasets/heart+disease .
+
+On this dataset we'll try to perform some exploratory analyses, and test a total of six models (5 + 1 ensemble model) to find the best fit for prediction of the heart disease in an adult population.
+
+## Methods
+
+### cleaning and process the Dataset
+
+The first goal of our cleaning and tidying process is to download the dataset and define the names of the columns. In fact, despite the dataset is provided with a partially tidy format, the names of the variables are missing form the principal file, and hence we have to extrapolate them from another document. At the end of the process we'll have the following variables:
+
+- Age: age in years
+- Sex: (1 = male; 0 = female)
+- Chest.Pain: chest pain type -- Value 1: typical angina -- Value 2: atypical angina -- Value 3: non-anginal pain Value 4: Asymptomatic
+- BP.Rest: resting blood pressure (in mm Hg on admission to the hospital)
+- Chol.Liv: serum cholestoral in mg/dl
+- Fast.Blood.Sugar: (fasting blood sugar > 120 mg/dl) (1 = true; 0 = false)
+- ECG.Rest: resting electrocardiographic results: 
+                Value 0: normal  
+                Value 1: having ST-T wave abnormality (T wave inversions and/or ST elevation or depression of > 0.05 mV) 
+                Value 2: showing probable or definite left ventricular hypertrophy by Estes' criteria
+- HR.Max: maximum heart rate achieved
+- Angina.post.Exercise: exercise induced angina (1 = yes; 0 = no)
+- OldPeak.ST: ST depression induced by exercise relative to rest 
+- Slope.ST: the slope of the peak exercise ST segment
+- Vessels.Fluo:number of major vessels (0-3) colored by flourosopy
+- Defect:3 = normal; 6 = fixed defect; 7 = reversable defect
+- Disease: disease in the patient. It is integer valued from 0 (no presence) to 4. 
+         Experiments with the Cleveland database have concentrated on simply attempting to distinguish 
+         presence (values 1,2,3,4) from absence (value 0).
+         
+         
+         
+```{r}
+
+#Load necessary libraries
+if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
+if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
+if(!require(data.table)) install.packages("data.table", repos = "http://cran.us.r-project.org")
+if(!require(foreign)) install.packages("foreign")
+if(!require(GGally))install.packages("GGally")
+
+#Downloading and checking dataset
+data<-read.table("https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data", sep=",")
+
+#adding column names
+colnames(data) <- c("Age", "Sex", "Chest.Pain", "BP.Rest", "Chol.Liv", "Fast.Blood.Sugar", "ECG.Rest", "HR.Max",
+                  "Angina.post.Exercise", "OldPeak.ST", "Slope.ST", "Vessels.Fluo", "Defect", "Disease")
+
+```
+
+
+After the first data adjustment we have to check the structure of oure datas and check for any NAs (missing values):
+
+```{r}
+#Check for changes after renaming columns, and check for NAs
+str(data)
+
+#Check for NAs
+apply(is.na(data), 2,which) 
+```
+
+
+Despite after check there wasn't any NAs, we have seen that some variables was coded by the question mark "?", so few entries are missed. For thi reason we procede to remove them all by filtering dataset.
+
+```{r}
+data <- data %>% filter_all(all_vars(.!="?")) 
+```
+
+The dataset contains the column ```disease```, that is represented by a range of five values 0 to 4, where 0 means "No disease" and the other 4 values are the level of disease progression. Since also a a value of 1 indicates heart disease, we'll convert it to a binary variable where 0 is kept if no disease are present, and 1 otherwise. Additionally, some data loaded as numeric are converted to factor for better analysis.  
+
+```{r}
+#Now we have removed 6 entries, but due to the pregress "?", despite his numeric nature, "Vessels.Flu" variable
+#was loaded as Factor. We have to convert it in a numerical variable and remove two values in accord with the dataset legend.
+
+data$Vessels.Fluo<-as.numeric(data$Vessels.Fluo) -2
+
+#For the same reason ("?") "Defect" variable present four levels instead three. We have to correct it, and also convert in factor
+#other categorical/binary variables that was mistaken read as numeric from the file.
+
+data$Defect<-factor(data$Defect)
+data$Sex<-factor(data$Sex)
+data$Chest.Pain<-factor(data$Chest.Pain)
+data$Fast.Blood.Sugar<-as.factor(data$Fast.Blood.Sugar)
+data$ECG.Rest<-as.factor(data$ECG.Rest)
+data$Angina.post.Exercise<-as.factor(data$Angina.post.Exercise)
+data$Slope.ST<-as.factor(data$Slope.ST)
+
+#For further analyses we also convert Disease variable in binary s reason, where 0 means "No disease", 1 "Disease present"
+
+data<-data%>%mutate(Disease=as.factor(ifelse(Disease==0,0,1)))
+```
+
+
+Once we have finally cleaned our dataset,  we are ready to starting the explorative analysis.
+
+### Data Exploration and testing correlations
+
+To check our data, will perform a series of density plot and bar plot to better exploring the nature of our independent variables compared to the dependent one (```disease```).
+Since epidemiologically it is known that the male and the female have a different distribution of heart diseases, we will plot all the variables comparing male and female sex.
+
+```{r, echo=FALSE, fig.width=6, fig.height=4, message=FALSE, warning=FALSE}
+#Heart Disease Males VS Females
+data %>%
+    ggplot(aes(x=Disease, fill=Disease, color=Disease)) +
+    geom_bar() +
+    theme(legend.position="bottom") +
+    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    facet_wrap(Sex~., labeller = labeller(Sex=c("0"="Female", "1"="Male")))+
+    ggtitle("Heart Disease Males VS Females")
+```
+
+How is possible to see from the first barplot, males have a bigger incidence and a bigger prevalence of heart disease than females.
+
+```{r, echo=FALSE, fig.width=6, fig.height=4, message=FALSE, warning=FALSE}
+#Heart Diseases versus Age for Males and Females
+
+data%>%
+    ggplot(aes(x=Age, fill=Disease, color=Disease)) +
+    geom_density(alpha=0.2) +
+    theme(legend.position="bottom") +
+    scale_x_continuous(name="Age") +
+    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    facet_grid(Sex~., labeller = labeller(Sex=c("0"="Female", "1"="Male")))+
+    ggtitle("Heart Diseases versus Age for Males and Females")
+```
+Not only the sex represent a discriminant variable for the occurrence of heart disease, age too has an important effect on it. Males and females, as is shown in the previous density plot, are both suffer a greater incidence of heart disease between the age of 50 and 70 years old.
+
+```{r, echo=FALSE, fig.width=6, fig.height=4, message=FALSE, warning=FALSE}
+data%>%
+    ggplot(aes(x=BP.Rest, fill=Disease, color=Disease)) +
+    geom_density(alpha=0.2) +
+    theme(legend.position="bottom") +
+    scale_x_continuous(name="BP") +
+    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    facet_grid(Sex~., labeller = labeller(Sex=c("0"="Female", "1"="Male")))+
+    ggtitle("Heart Diseases versus Systolic BP for Males and Females")
+```
+If we consider the systolic BP we can observe that there aren't great difference in terms of presence of disease, just in case of female sex, we can note a slightly increasing of incidence with a value of 150 mmHg or greater.
+
+
+```{r, echo=FALSE, fig.width=6, fig.height=4, message=FALSE, warning=FALSE}
+data%>%
+    ggplot(aes(x=Chol.Liv, fill=Disease, color=Disease)) +
+    geom_density(alpha=0.2) +
+    theme(legend.position="bottom") +
+    scale_x_continuous(name="Chol.Liv.") +
+    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    facet_grid(Sex~., labeller = labeller(Sex=c("0"="Female", "1"="Male")))+
+    ggtitle("Heart Diseases versus Cholesterol Levels for Males and Females")
+
+#Heart Diseases versus Fast blood Sugar >120 mg/dl exercises for Males and Females
+data%>%
+    ggplot(aes(x=Disease, fill=Disease, color=Disease))+
+    geom_bar() +
+    theme(legend.position="bottom") +
+    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    facet_grid(Sex~Fast.Blood.Sugar, labeller = labeller(Sex=c("0"="Female", "1"="Male"), Fast.Blood.Sugar=c("0"="<=120mg/dl", "1"=">120mg/dl")))+
+    ggtitle("Heart Disease VS FBS > 120 mg/dl Males and Females")
+```
+Cholesterol levels and Fast blood sugar are also seeming a non-discriminating variables, although we can observe a little modification in terms of incidence with values of Cholesterol greater than 250.
+
+```{r, echo=FALSE, fig.width=6, fig.height=4, message=FALSE, warning=FALSE}
+#Heart Diseases versus HR max for Males and Females
+
+data%>%
+    ggplot(aes(x=HR.Max, fill=Disease, color=Disease)) +
+    geom_density(alpha=0.2) +
+    theme(legend.position="bottom") +
+    scale_x_continuous(name="HR Max") +
+    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    facet_grid(Sex~., labeller = labeller(Sex=c("0"="Female", "1"="Male")))+
+    ggtitle("Heart Diseases versus HR max for Males and Females")
+```
+Paradoxically, as is shown in the density plot, a lower heart rate would seem to be related to an increase in the incidence of the disease.
+
+```{r, echo=FALSE, fig.width=6, fig.height=4, message=FALSE, warning=FALSE}
+data%>%
+    ggplot(aes(x=Disease, fill=Disease, color=Disease))+
+    geom_bar() +
+    theme(legend.position="bottom") +
+    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    facet_grid(Sex~ECG.Rest, labeller = labeller(Sex=c("0"="Female", "1"="Male"), ECG.Rest=c("0"="ECG: Normal", "1"="ECG: ST.Abn.", "2"="ECG: Vent.Hyper.")))+
+    ggtitle("Heart Disease VS ECG Males and Females")
+
+```
+
+ECG seems to provide insights just for evident anomalies of cardiac rhythm.
+
+```{r, echo=FALSE, fig.width=6, fig.height=4, message=FALSE, warning=FALSE}
+data%>%
+    ggplot(aes(x=Vessels.Fluo, fill=Disease, color=Disease)) +
+    geom_density(alpha=0.2) +
+    theme(legend.position="bottom") +
+    scale_x_continuous(name="Vessels") +
+    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    facet_grid(Sex~., labeller = labeller(Sex=c("0"="Female", "1"="Male")))+
+    ggtitle("Heart Diseases versus Vessels colored in Fluo for Males and Females")
+```
+
+A very important information is provided by the cardiac fluor angiography.In Fact, with one or more vessels involved the incidence of heart disease increase significatively.
+```{r, echo=FALSE, fig.width=6, fig.height=4, message=FALSE, warning=FALSE}
+#Heart Diseases versus ST depression post exercises for Males and Females
+
+data%>%
+    ggplot(aes(x=OldPeak.ST, fill=Disease, color=Disease)) +
+    geom_density(alpha=0.2) +
+    theme(legend.position="bottom") +
+    scale_x_continuous(name="ST.Dept") +
+    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    facet_grid(Sex~., labeller = labeller(Sex=c("0"="Female", "1"="Male")))+
+    ggtitle("Heart Diseases versusST depression post exercises for Males and Females")
+
+#Heart Diseases versus Angina post exercises for Males and Females
+
+data%>%
+    ggplot(aes(x=Disease, fill=Disease, color=Disease))+
+    geom_bar() +
+    theme(legend.position="bottom") +
+    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    facet_grid(Sex~Angina.post.Exercise, labeller = labeller(Sex=c("0"="Female", "1"="Male"), Angina.post.Exercise=c("0"="No Angina", "1"="Angina")))+
+    ggtitle("Heart Disease VS Angina Males and Females")
+
+#Heart Diseases versus Chest Pain for Males and Females
+
+data%>%
+    ggplot(aes(x=Disease, fill=Disease, color=Disease))+
+    geom_bar() +
+    theme(legend.position="bottom") +
+    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    facet_grid(Sex~Chest.Pain, labeller = labeller(Sex=c("0"="Female", "1"="Male"), Chest.Pain=c("1"="Typical Angina", "2"="Atypical Angina", "3"="No Anginal Pain", "4"="Asymptomatic")))+
+    ggtitle("Heart Disease VS Chest Pain Males and Females")
+```
+While ST depression during an ECG, and an Angina pain after exercise would seem to be related to the presence of heart disease, the data about chest pain shows a counterintuitive condition, where typical angina seems to be a worst predicting element than asymptomatic condition.
+
+Once reached this point of the analysis it is advisable to evaluate the correlations existing between the variables examined.
+```{r, echo=FALSE, fig.width=6, fig.height=4, message=FALSE, warning=FALSE}
+ggcorr(cor(matrix(as.numeric(unlist(data)),nrow=nrow(data))),label=TRUE,nbreaks = 5)+
+    ggtitle("Correlation Plot")
+```
+
+As we can observe our variables are not very intercorrelated, and so we can proceed with our analysis without the risk of use two or more unreliable predictors.
+
+
+### Creating the Training and Testing Sets
+
+In order to predict heart disease in patients, we must separate the dataset into a training and a testing set, each containing different observations. 20% of the dataset is thus assigned to the testing set.
+
+```
+                                                            #TESTING DATASET
+#We start with a simple guess model, just to evaluate the power of our furthers models for predicting Disease presence or not.
+set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
+fit_guess<-sample(c(0,1), nrow(data), replace=T)
+mean(fit_guess==data$Disease) #Check our predictions
+
+#Now we'll split the dataset in Test and Training set, with a proportion 8:2. For this task we'll use caret package.
+set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
+test_index<-createDataPartition(data$Disease,times = 1, p=0.2, list=F) #Indexing for test set
+test_set<-data[test_index,] #creating test set
+train_set<-data[-test_index,] #crating training set
+```
+
+We are now ready to test some machine learning algorithms to create a final prediction model for our dataset.
+For a better develop and training of our models we will provide to set a training control with the ```caret``` package, using a 10 fold cross validation during all over the tests.
+
+```
+# Define train control for k-fold (10-fold here) cross validation
+fitControl <- trainControl(method = "cv",number = 10, savePredictions = TRUE)
+```
+
+### Model 1: K-Nearest Neighbors
+
+A first attempt was made using a k-nearest neighbors algorithm, or 'knn'. The first step to optimize this model was to use the ```tunegrid``` function in order to retrieve the highest accuracy from a range of k values (the number of "neighbors" to be considered for each datapoint).
+
+```
+#starting with a KNN Model
+set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
+fit_KNN<-train(Disease~., data= train_set, method="knn", tuneGrid=data.frame(k=seq(1,30,1)),trControl=fitControl) #fit model and try some k's
+pre_KNN<-predict(fit_KNN,test_set) #predict results
+confusionMatrix(pre_KNN,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+#saving parameters and print the results
+Accuracy_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$overall["Accuracy"]
+Sensitivity_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Sensitivity"]
+Specificity_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Specificity"]
+Bal.Accuracy_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Balanced Accuracy"]
+```
+ 

@@ -50,7 +50,7 @@ str(data) #look at the dataframe
 
 
 
-
+#adding column names
 colnames(data) <- c("Age", "Sex", "Chest.Pain", "BP.Rest", "Chol.Liv", "Fast.Blood.Sugar", "ECG.Rest", "HR.Max",
                   "Angina.post.Exercise", "OldPeak.ST", "Slope.ST", "Vessels.Fluo", "Defect", "Disease")
 
@@ -64,7 +64,7 @@ apply(is.na(data), 2,which)
 #indicated by the question mark "?", so we procede to remove them all by filtering dataset.
 data <- data %>% filter_all(all_vars(.!="?")) 
 
-#Now we have removed 6 entries, but due to the pregress "?", despite his numeric nature, Vessels.Flu variable
+#Now we have removed 6 entries, but due to the pregress "?", despite his numeric nature, "Vessels.Flu" variable
 #was loaded as Factor. We have to convert it in a numerical variable and remove two values in accord with the dataset legend.
 
 data$Vessels.Fluo<-as.numeric(data$Vessels.Fluo) -2
@@ -145,6 +145,17 @@ data%>%
     facet_grid(Sex~., labeller = labeller(Sex=c("0"="Female", "1"="Male")))+
     ggtitle("Heart Diseases versus Cholesterol Levels for Males and Females")
 
+#Heart Diseases versus Fast blood Sugar >120 mg/dl exercises for Males and Females
+
+data%>%
+    ggplot(aes(x=Disease, fill=Disease, color=Disease))+
+    geom_bar() +
+    theme(legend.position="bottom") +
+    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
+    facet_grid(Sex~Fast.Blood.Sugar, labeller = labeller(Sex=c("0"="Female", "1"="Male"), Fast.Blood.Sugar=c("0"="<=120mg/dl", "1"=">120mg/dl")))+
+    ggtitle("Heart Disease VS FBS > 120 mg/dl Males and Females")
+
 #Heart Diseases versus HR max for Males and Females
 
 data%>%
@@ -215,23 +226,11 @@ data%>%
     ggtitle("Heart Disease VS Chest Pain Males and Females")
 
 
-#Heart Diseases versus Fast blood Sugar >120 mg/dl exercises for Males and Females
-
-data%>%
-    ggplot(aes(x=Disease, fill=Disease, color=Disease))+
-    geom_bar() +
-    theme(legend.position="bottom") +
-    scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
-    scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
-    facet_grid(Sex~Fast.Blood.Sugar, labeller = labeller(Sex=c("0"="Female", "1"="Male"), Fast.Blood.Sugar=c("0"="<=120mg/dl", "1"=">120mg/dl")))+
-    ggtitle("Heart Disease VS FBS > 120 mg/dl Males and Females")
 
 #Checking for the variables correlation
 ggcorr(cor(matrix(as.numeric(unlist(data)),nrow=nrow(data))),label=TRUE,nbreaks = 5)+
     ggtitle("Correlation Plot")
 
-#Removing variables with low correlation with our target variable ("Disease")
-#data<-data[,c(1,2,3,6,8,9,10,11,12,13,14)]
 
                                                             #TESTING DATASET
 #We start with a simple guess model, just to evaluate the power of our furthers models for predicting Disease presence or not.
@@ -246,8 +245,6 @@ test_set<-data[test_index,] #creating test set
 train_set<-data[-test_index,] #crating training set
 
                                                                 #MODELING
-nzv<-nearZeroVar(data, saveMetrics = TRUE) #check for zero variance variables.
-nzv #no zero variance variables
 
 # Define train control for k-fold (10-fold here) cross validation
 fitControl <- trainControl(method = "cv",number = 10, savePredictions = TRUE)
