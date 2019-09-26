@@ -273,7 +273,7 @@ set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
 fit_ada<-train(Disease~.,data=train_set, method="adaboost",trControl=fitControl) #fit model
 pre_ada<-predict(fit_ada,test_set) #predict results
 confusionMatrix(pre_ada,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
-#saving parameters
+#saving parameters and print the results
 Accuracy_ada <- confusionMatrix(pre_ada,test_set$Disease)$overall["Accuracy"]
 Sensitivity_ada <- confusionMatrix(pre_ada,test_set$Disease)$byClass["Sensitivity"]
 Specificity_ada <- confusionMatrix(pre_ada,test_set$Disease)$byClass["Specificity"]
@@ -290,7 +290,7 @@ set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
 fit_GLM<-train(Disease~., data= train_set, method="glm", family="binomial", trControl=fitControl) #fit model
 pre_GLM<-predict(fit_GLM,test_set) #predict results
 confusionMatrix(pre_GLM,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
-#saving parameters
+#saving parameters and print the results
 Accuracy_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$overall["Accuracy"]
 Sensitivity_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$byClass["Sensitivity"]
 Specificity_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$byClass["Specificity"]
@@ -308,7 +308,7 @@ set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
 fit_rpart<-train(Disease~., data= train_set, method="rpart",trControl=fitControl) #fit model
 pre_rpart<-predict(fit_rpart,test_set) #predict results
 confusionMatrix(pre_rpart,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
-#saving parameters
+#saving parameters and print the results
 Accuracy_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$overall["Accuracy"]
 Sensitivity_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$byClass["Sensitivity"]
 Specificity_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$byClass["Specificity"]
@@ -327,7 +327,7 @@ set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
 fit_rf<-train(Disease~., data= train_set, method="rf",trControl=fitControl) #fit model
 pre_rf<-predict(fit_rf,test_set) #predict results
 confusionMatrix(pre_rf,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
-#saving parameters
+#saving parameters and print the results
 Accuracy_rf <- confusionMatrix(pre_rf,test_set$Disease)$overall["Accuracy"]
 Sensitivity_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Sensitivity"]
 Specificity_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Specificity"]
@@ -353,7 +353,7 @@ Specificity_ens<- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Specif
 Bal.Accuracy_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Balanced Accuracy"]
 
 
-
+#Print final table of results.
 results <- tribble(
     ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
     "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
