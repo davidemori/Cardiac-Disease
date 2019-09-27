@@ -233,10 +233,7 @@ ggcorr(cor(matrix(as.numeric(unlist(data)),nrow=nrow(data))),label=TRUE,nbreaks 
 
 
                                                             #TESTING DATASET
-#We start with a simple guess model, just to evaluate the power of our furthers models for predicting Disease presence or not.
-set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
-fit_guess<-sample(c(0,1), nrow(data), replace=T)
-mean(fit_guess==data$Disease) #Check our predictions
+
 
 #Now we'll split the dataset in Test and Training set, with a proportion 8:2. For this task we'll use caret package.
 set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
@@ -339,7 +336,7 @@ results <- tribble(
     "Random Forest", Accuracy_rf,  Sensitivity_rf, Specificity_rf,Bal.Accuracy_rf)
 results
 
-#Try to improve our model with ensemble strategy
+#Try to improve our models with ensemble strategy
 ensemble<-data.frame(pre_GLM,pre_rf,pre_ada)
 pre_ensemble<-as.factor(ifelse(rowMeans(ensemble==1)>0.5,1,0))
 confusionMatrix(pre_ensemble,test_set$Disease)

@@ -64,11 +64,25 @@ if(!require(foreign)) install.packages("foreign")
 if(!require(GGally))install.packages("GGally")
 
 #Downloading and checking dataset
-data<-read.table("https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data", sep=",")
+data<-read.table(
+  "https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data",
+  sep=",")
 
 #adding column names
-colnames(data) <- c("Age", "Sex", "Chest.Pain", "BP.Rest", "Chol.Liv", "Fast.Blood.Sugar", "ECG.Rest", "HR.Max",
-                  "Angina.post.Exercise", "OldPeak.ST", "Slope.ST", "Vessels.Fluo", "Defect", "Disease")
+colnames(data) <- c("Age", 
+                    "Sex", 
+                    "Chest.Pain", 
+                    "BP.Rest", 
+                    "Chol.Liv", 
+                    "Fast.Blood.Sugar", 
+                    "ECG.Rest", 
+                    "HR.Max",
+                    "Angina.post.Exercise", 
+                    "OldPeak.ST", 
+                    "Slope.ST", 
+                    "Vessels.Fluo", 
+                    "Defect", 
+                    "Disease")
 
 ```
 
@@ -93,14 +107,8 @@ data <- data %>% filter_all(all_vars(.!="?"))
 The dataset contains the column ```disease```, that is represented by a range of five values 0 to 4, where 0 means "No disease" and the other 4 values are the level of disease progression. Since also a a value of 1 indicates heart disease, we'll convert it to a binary variable where 0 is kept if no disease are present, and 1 otherwise. Additionally, some data loaded as numeric are converted to factor for better analysis.  
 
 ```{r}
-#Now we have removed 6 entries, but due to the pregress "?", despite his numeric nature, "Vessels.Flu" variable
-#was loaded as Factor. We have to convert it in a numerical variable and remove two values in accord with the dataset legend.
 
 data$Vessels.Fluo<-as.numeric(data$Vessels.Fluo) -2
-
-#For the same reason ("?") "Defect" variable present four levels instead three. We have to correct it, and also convert in factor
-#other categorical/binary variables that was mistaken read as numeric from the file.
-
 data$Defect<-factor(data$Defect)
 data$Sex<-factor(data$Sex)
 data$Chest.Pain<-factor(data$Chest.Pain)
@@ -109,7 +117,6 @@ data$ECG.Rest<-as.factor(data$ECG.Rest)
 data$Angina.post.Exercise<-as.factor(data$Angina.post.Exercise)
 data$Slope.ST<-as.factor(data$Slope.ST)
 
-#For further analyses we also convert Disease variable in binary s reason, where 0 means "No disease", 1 "Disease present"
 
 data<-data%>%mutate(Disease=as.factor(ifelse(Disease==0,0,1)))
 ```
@@ -230,7 +237,7 @@ data%>%
 ```
 
 A very important information is provided by the cardiac fluor angiography.In Fact, with one or more vessels involved the incidence of heart disease increase significatively.
-```{r, echo=FALSE, fig.width=6, fig.height=4, message=FALSE, warning=FALSE}
+```{r, echo=FALSE, fig.width=6, fig.height=4, fig.align='center', message=FALSE, warning=FALSE}
 #Heart Diseases versus ST depression post exercises for Males and Females
 
 data%>%
@@ -242,7 +249,9 @@ data%>%
     scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
     facet_grid(Sex~., labeller = labeller(Sex=c("0"="Female", "1"="Male")))+
     ggtitle("Heart Diseases versusST depression post exercises for Males and Females")
+```
 
+```{r, echo=FALSE, fig.width=6, fig.height=4, fig.align='center', message=FALSE, warning=FALSE}
 #Heart Diseases versus Angina post exercises for Males and Females
 
 data%>%
@@ -253,7 +262,9 @@ data%>%
     scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
     facet_grid(Sex~Angina.post.Exercise, labeller = labeller(Sex=c("0"="Female", "1"="Male"), Angina.post.Exercise=c("0"="No Angina", "1"="Angina")))+
     ggtitle("Heart Disease VS Angina Males and Females")
+```
 
+```{r, echo=FALSE, fig.width=6, fig.height=4, message=FALSE,fig.align='center', warning=FALSE}
 #Heart Diseases versus Chest Pain for Males and Females
 
 data%>%
@@ -280,36 +291,37 @@ As we can observe our variables are not very intercorrelated, and so we can proc
 
 In order to predict heart disease in patients, we must separate the dataset into a training and a testing set, each containing different observations. 20% of the dataset is thus assigned to the testing set.
 
-```
-                                                            #TESTING DATASET
-#We start with a simple guess model, just to evaluate the power of our furthers models for predicting Disease presence or not.
-set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
-fit_guess<-sample(c(0,1), nrow(data), replace=T)
-mean(fit_guess==data$Disease) #Check our predictions
+```{r}
 
-#Now we'll split the dataset in Test and Training set, with a proportion 8:2. For this task we'll use caret package.
 set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
 test_index<-createDataPartition(data$Disease,times = 1, p=0.2, list=F) #Indexing for test set
 test_set<-data[test_index,] #creating test set
 train_set<-data[-test_index,] #crating training set
 ```
 
-We are now ready to test some machine learning algorithms to create a final prediction model for our dataset.
-For a better develop and training of our models we will provide to set a training control with the ```caret``` package, using a 10 fold cross validation during all over the tests.
 
-```
+We are now ready to test some machine learning algorithms to create a final prediction model for our dataset.
+For a better develop and train our models we will provide to set a training control with the ```caret``` package, using a 10 fold cross validation during all over the tests.
+
+```{r}
 # Define train control for k-fold (10-fold here) cross validation
 fitControl <- trainControl(method = "cv",number = 10, savePredictions = TRUE)
 ```
 
+
 ### Model 1: K-Nearest Neighbors
 
-A first attempt was made using a k-nearest neighbors algorithm, or 'knn'. The first step to optimize this model was to use the ```tunegrid``` function in order to retrieve the highest accuracy from a range of k values (the number of "neighbors" to be considered for each datapoint).
+A first attempt was made using a k-nearest neighbors algorithm, or 'KNN'. The first step to optimize this model was to use the ```tuneGrid``` function in order to retrieve the highest accuracy from a range of k values (the number of "neighbors" to be considered for each datapoint).
 
-```
+
+```{r}
 #starting with a KNN Model
 set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
-fit_KNN<-train(Disease~., data= train_set, method="knn", tuneGrid=data.frame(k=seq(1,30,1)),trControl=fitControl) #fit model and try some k's
+fit_KNN<-train(Disease~., 
+               data= train_set,
+               method="knn", 
+               tuneGrid=data.frame(k=seq(1,30,1)),
+               trControl=fitControl) #fit model and try some k's
 pre_KNN<-predict(fit_KNN,test_set) #predict results
 confusionMatrix(pre_KNN,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
 #saving parameters and print the results
@@ -317,5 +329,164 @@ Accuracy_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$overall["Accuracy"]
 Sensitivity_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Sensitivity"]
 Specificity_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Specificity"]
 Bal.Accuracy_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Balanced Accuracy"]
+
+results <- tribble(
+    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
+    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN)
+results
+
 ```
- 
+
+At a first look the accuracy of this model is not very high (0.63) and in particular his Balanced Accuracy is only 0.627, all this things suggest us to continue our analyses.
+
+### Model 2: Adaptive boosting Model
+
+The second model that we wanna try is the "Adaboost" model. Also this time we set a seed equal to 1 ande proceed to train the model on the training set. It will take few minutes to run, but crossing our fingers probably we will see an improvement.
+
+```{r}
+#Adaboost Classification trees model
+set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
+fit_ada<-train(Disease~.,
+               data=train_set, 
+               method="adaboost",
+               trControl=fitControl) #fit model
+pre_ada<-predict(fit_ada,test_set) #predict results
+confusionMatrix(pre_ada,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+#saving parameters and print the results
+Accuracy_ada <- confusionMatrix(pre_ada,test_set$Disease)$overall["Accuracy"]
+Sensitivity_ada <- confusionMatrix(pre_ada,test_set$Disease)$byClass["Sensitivity"]
+Specificity_ada <- confusionMatrix(pre_ada,test_set$Disease)$byClass["Specificity"]
+Bal.Accuracy_ada <- confusionMatrix(pre_ada,test_set$Disease)$byClass["Balanced Accuracy"]
+
+results <- tribble(
+    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
+    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
+    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada)
+results
+```
+We got a good result with an accuracy of 0.8 and a Balanced Accuracy of 0.796 (we note just a slightly lack in the specificity of this model). The results are good, but we want improve it and try to get a better prediction, hence we will train another model on our dataset.
+
+### Model 3: General Logistic Regression model
+At this point we want to change our strategy and we will try a regression type model, in particular will perform a logistic regression model and will check if it will yield the hoping improvements.
+
+```{r}
+#Logistic Regression Model
+set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
+fit_GLM<-train(Disease~., 
+               data= train_set, 
+               method="glm", 
+               family="binomial", 
+               trControl=fitControl) #fit model
+pre_GLM<-predict(fit_GLM,test_set) #predict results
+confusionMatrix(pre_GLM,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+#saving parameters and print the results
+Accuracy_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$overall["Accuracy"]
+Sensitivity_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$byClass["Sensitivity"]
+Specificity_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$byClass["Specificity"]
+Bal.Accuracy_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$byClass["Balanced Accuracy"]
+
+results <- tribble(
+    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
+    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
+    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada,
+    "General Logistic Regression Model", Accuracy_GLM,  Sensitivity_GLM, Specificity_GLM,Bal.Accuracy_GLM)
+results
+
+```
+Comparing all the three models done we can see that GLM model improve considerly the values of Accuracy, Sensitivty and Specificity. So, we are on the good way, we could stop our research, but we are "hungry" researcher and we want to check if it is still possible to improve our results.
+
+### Model 4: Decision Tree model
+As fourth model we will choose a decision tree model, and also for this algorithm will use the caret package with a 10 K-Fold cross validation.
+
+```{r}
+#Decision tree Model
+set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
+fit_rpart<-train(Disease~., 
+                 data= train_set, 
+                 method="rpart",
+                 trControl=fitControl) #fit model
+pre_rpart<-predict(fit_rpart,test_set) #predict results
+confusionMatrix(pre_rpart,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+#saving parameters and print the results
+Accuracy_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$overall["Accuracy"]
+Sensitivity_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$byClass["Sensitivity"]
+Specificity_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$byClass["Specificity"]
+Bal.Accuracy_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$byClass["Balanced Accuracy"]
+
+results <- tribble(
+    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
+    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
+    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada,
+    "General Logistic Regression Model", Accuracy_GLM,  Sensitivity_GLM, Specificity_GLM,Bal.Accuracy_GLM,
+    "Decision Tree Model", Accuracy_rpart,Sensitivity_rpart,Specificity_rpart,Bal.Accuracy_rpart)
+results
+```
+Again, checking the results we see a slightly worsen value of accuracy, but despite a lack in specificity we had sensibly improve our prediction sesnsitivty; for this reason, seen the possibility to increase our predictive parameters, it has meant continuing our analysis trying to improve the specificity as well as the sensitivity.
+
+### Model 5: Random Forest model
+
+As further model we will train a Random Forest model, that represents a deepening of the Decision Tree model seen before.
+```{r}
+#Random Forest model
+set.seed(1, sample.kind = "Rounding") #use set.seed(1) if use R version < 3.6
+fit_rf<-train(Disease~., 
+              data= train_set, 
+              method="rf",
+              trControl=fitControl) #fit model
+pre_rf<-predict(fit_rf,test_set) #predict results
+confusionMatrix(pre_rf,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+#saving parameters and print the results
+Accuracy_rf <- confusionMatrix(pre_rf,test_set$Disease)$overall["Accuracy"]
+Sensitivity_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Sensitivity"]
+Specificity_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Specificity"]
+Bal.Accuracy_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Balanced Accuracy"]
+
+results <- tribble(
+    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
+    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
+    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada,
+    "General Logistic Regression Model", Accuracy_GLM,  Sensitivity_GLM, Specificity_GLM,Bal.Accuracy_GLM,
+    "Decision Tree Model", Accuracy_rpart,Sensitivity_rpart,Specificity_rpart,Bal.Accuracy_rpart,
+    "Random Forest", Accuracy_rf,  Sensitivity_rf, Specificity_rf,Bal.Accuracy_rf)
+results
+```
+Our efforts are payed with a strong increase of accuracy (0.85), sensitivty (0.875) and specificity (0.821). All our parmeters are improved and now, once reached the decision point , we have to choose if stop the searching, or try to make some changes to improve again.
+We decide to try another strategy, will ensemble the three best models to see if is possible to get a more accurate result.
+
+### Ensemble model
+The ensemble strategy involves calculating the average of the results obtained with the desired models, to generate a new prediction series,  that will be subsequently compared with the real results through a confusion matrix.
+```{r}
+#Try to improve our models with ensemble strategy
+ensemble<-data.frame(pre_GLM,pre_rf,pre_ada)
+pre_ensemble<-as.factor(ifelse(rowMeans(ensemble==1)>0.5,1,0))
+confusionMatrix(pre_ensemble,test_set$Disease)
+#saving parameters
+Accuracy_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$overall["Accuracy"]
+Sensitivity_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Sensitivity"]
+Specificity_ens<- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Specificity"]
+Bal.Accuracy_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Balanced Accuracy"]
+```
+
+
+```{r echo=FALSE}
+#Print final table of results.
+results <- tribble(
+    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
+    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
+    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada,
+    "General Logistic Regression Model", Accuracy_GLM,  Sensitivity_GLM, Specificity_GLM,Bal.Accuracy_GLM,
+    "Decision Tree Model", Accuracy_rpart,Sensitivity_rpart,Specificity_rpart,Bal.Accuracy_rpart,
+    "Random Forest", Accuracy_rf,  Sensitivity_rf, Specificity_rf,Bal.Accuracy_rf,
+    "Ensamble Model",Accuracy_ens,Sensitivity_ens,Specificity_ens,Bal.Accuracy_ens
+)
+results
+```
+
+```
+As we can see the ensemble model didn't improve our results achieved from the Random Forest, so we can stop to search another algorithm or another strategy and choose as definitive approach the Random Forest model.
+
+## Conclusions
+
+In conclusion we can say that we have achieved good predictive results through the Random Forest model. The levels of accuracy, sensitivity and specificity are quite satisfactory and allow to predict in 85% of cases the onset of heart disease in both men and women. Probably further variables to be examined could positively influence forecasts and further improve our machine learning models.
+
+
