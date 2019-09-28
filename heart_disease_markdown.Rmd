@@ -7,6 +7,7 @@ output:
   number_sections: default
 theme: lumen
 title: "Heart Disease predicting model"
+toc: true
 ---
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
@@ -57,16 +58,16 @@ The first goal of our cleaning and tidying process is to download the dataset an
 ```{r}
 
 #Load necessary libraries
-if(!require(tidyverse)) install.packages("tidyverse", repos = "http://cran.us.r-project.org")
-if(!require(caret)) install.packages("caret", repos = "http://cran.us.r-project.org")
-if(!require(data.table)) install.packages("data.table", repos = "http://cran.us.r-project.org")
+if(!require(tidyverse)) install.packages("tidyverse")
+if(!require(caret)) install.packages("caret")
+if(!require(data.table)) install.packages("data.table")
 if(!require(foreign)) install.packages("foreign")
 if(!require(GGally))install.packages("GGally")
 
 #Downloading and checking dataset
 data<-read.table(
-  "https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data",
-  sep=",")
+"https://archive.ics.uci.edu/ml/machine-learning-databases/heart-disease/processed.cleveland.data",
+sep=",")
 
 #adding column names
 colnames(data) <- c("Age", 
@@ -87,7 +88,7 @@ colnames(data) <- c("Age",
 ```
 
 
-After the first data adjustment we have to check the structure of oure datas and check for any NAs (missing values):
+After the first data adjustment we have to check the structure of our datas and check for any NAs (missing values):
 
 ```{r}
 #Check for changes after renaming columns, and check for NAs
@@ -190,7 +191,11 @@ data%>%
     theme(legend.position="bottom") +
     scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
     scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
-    facet_grid(Sex~Fast.Blood.Sugar, labeller = labeller(Sex=c("0"="Female", "1"="Male"), Fast.Blood.Sugar=c("0"="<=120mg/dl", "1"=">120mg/dl")))+
+    facet_grid(Sex~Fast.Blood.Sugar, 
+               labeller = labeller(Sex=c("0"="Female", 
+                                         "1"="Male"),
+                                   Fast.Blood.Sugar=c("0"="<=120mg/dl",
+                                                      "1"=">120mg/dl")))+
     ggtitle("Heart Disease VS FBS > 120 mg/dl Males and Females")
 ```
 Cholesterol levels and Fast blood sugar are also seeming a non-discriminating variables, although we can observe a little modification in terms of incidence with values of Cholesterol greater than 250.
@@ -217,7 +222,11 @@ data%>%
     theme(legend.position="bottom") +
     scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
     scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
-    facet_grid(Sex~ECG.Rest, labeller = labeller(Sex=c("0"="Female", "1"="Male"), ECG.Rest=c("0"="ECG: Normal", "1"="ECG: ST.Abn.", "2"="ECG: Vent.Hyper.")))+
+    facet_grid(Sex~ECG.Rest, 
+               labeller = labeller(Sex=c("0"="Female", "1"="Male"), 
+                                   ECG.Rest=c("0"="ECG: Normal", 
+                                              "1"="ECG: ST.Abn.", 
+                                              "2"="ECG: Vent.Hyper.")))+
     ggtitle("Heart Disease VS ECG Males and Females")
 
 ```
@@ -260,7 +269,11 @@ data%>%
     theme(legend.position="bottom") +
     scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
     scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
-    facet_grid(Sex~Angina.post.Exercise, labeller = labeller(Sex=c("0"="Female", "1"="Male"), Angina.post.Exercise=c("0"="No Angina", "1"="Angina")))+
+    facet_grid(Sex~Angina.post.Exercise, 
+               labeller = labeller(Sex=c("0"="Female", 
+                                         "1"="Male"), 
+                                   Angina.post.Exercise=c("0"="No Angina", 
+                                                          "1"="Angina")))+
     ggtitle("Heart Disease VS Angina Males and Females")
 ```
 
@@ -273,7 +286,13 @@ data%>%
     theme(legend.position="bottom") +
     scale_fill_discrete(name='Heart Disease',labels=c("No", "Yes")) +
     scale_color_discrete(name='Heart Disease',labels=c("No", "Yes")) +
-    facet_grid(Sex~Chest.Pain, labeller = labeller(Sex=c("0"="Female", "1"="Male"), Chest.Pain=c("1"="Typical Angina", "2"="Atypical Angina", "3"="No Anginal Pain", "4"="Asymptomatic")))+
+    facet_grid(Sex~Chest.Pain, 
+               labeller = labeller(Sex=c("0"="Female", 
+                                         "1"="Male"),  
+                                   Chest.Pain=c("1"="Typical Angina", 
+                                                "2"="Atypical Angina", 
+                                                "3"="No Anginal Pain", 
+                                                "4"="Asymptomatic")))+
     ggtitle("Heart Disease VS Chest Pain Males and Females")
 ```
 While ST depression during an ECG, and an Angina pain after exercise would seem to be related to the presence of heart disease, the data about chest pain shows a counterintuitive condition, where typical angina seems to be a worst predicting element than asymptomatic condition.
@@ -300,7 +319,15 @@ train_set<-data[-test_index,] #crating training set
 ```
 
 
-We are now ready to test some machine learning algorithms to create a final prediction model for our dataset.
+We are now ready to test some machine learning algorithms to create a final prediction model for the occurrence of heart diseas, but before start we must check for the integrity of the two sets, and for their homogeneicity.
+
+```{r}
+#Checking for datasets distributions
+summary(train_set)
+summary(test_set)
+```
+
+
 For a better develop and train our models we will provide to set a training control with the ```caret``` package, using a 10 fold cross validation during all over the tests.
 
 ```{r}
@@ -323,7 +350,12 @@ fit_KNN<-train(Disease~.,
                tuneGrid=data.frame(k=seq(1,30,1)),
                trControl=fitControl) #fit model and try some k's
 pre_KNN<-predict(fit_KNN,test_set) #predict results
-confusionMatrix(pre_KNN,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+confusionMatrix(pre_KNN,test_set$Disease) #make a confusion matrix 
+
+
+```
+
+```{r echo=FALSE}
 #saving parameters and print the results
 Accuracy_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$overall["Accuracy"]
 Sensitivity_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Sensitivity"]
@@ -331,11 +363,19 @@ Specificity_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Specificit
 Bal.Accuracy_KNN <- confusionMatrix(pre_KNN,test_set$Disease)$byClass["Balanced Accuracy"]
 
 results <- tribble(
-    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
-    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN)
+    ~Method, 
+    ~Accuracy, 
+    ~Sensitivity,  
+    ~Specificity, 
+    ~Bal.Accuracy,
+    "KNN", 
+    Accuracy_KNN,  
+    Sensitivity_KNN, 
+    Specificity_KNN,
+    Bal.Accuracy_KNN)
 results
-
 ```
+
 
 At a first look the accuracy of this model is not very high (0.63) and in particular his Balanced Accuracy is only 0.627, all this things suggest us to continue our analyses.
 
@@ -351,7 +391,11 @@ fit_ada<-train(Disease~.,
                method="adaboost",
                trControl=fitControl) #fit model
 pre_ada<-predict(fit_ada,test_set) #predict results
-confusionMatrix(pre_ada,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+confusionMatrix(pre_ada,test_set$Disease) #make a confusion matrix
+
+```
+
+```{r echo=FALSE}
 #saving parameters and print the results
 Accuracy_ada <- confusionMatrix(pre_ada,test_set$Disease)$overall["Accuracy"]
 Sensitivity_ada <- confusionMatrix(pre_ada,test_set$Disease)$byClass["Sensitivity"]
@@ -359,11 +403,25 @@ Specificity_ada <- confusionMatrix(pre_ada,test_set$Disease)$byClass["Specificit
 Bal.Accuracy_ada <- confusionMatrix(pre_ada,test_set$Disease)$byClass["Balanced Accuracy"]
 
 results <- tribble(
-    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
-    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
-    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada)
+    ~Method, 
+    ~Accuracy, 
+    ~Sensitivity,  
+    ~Specificity, 
+    ~Bal.Accuracy,
+    "KNN", 
+    Accuracy_KNN,  
+    Sensitivity_KNN, 
+    Specificity_KNN,
+    Bal.Accuracy_KNN,
+    "Adaboost", 
+    Accuracy_ada,  
+    Sensitivity_ada, 
+    Specificity_ada,
+    Bal.Accuracy_ada)
 results
 ```
+
+
 We got a good result with an accuracy of 0.8 and a Balanced Accuracy of 0.796 (we note just a slightly lack in the specificity of this model). The results are good, but we want improve it and try to get a better prediction, hence we will train another model on our dataset.
 
 ### Model 3: General Logistic Regression model
@@ -378,7 +436,12 @@ fit_GLM<-train(Disease~.,
                family="binomial", 
                trControl=fitControl) #fit model
 pre_GLM<-predict(fit_GLM,test_set) #predict results
-confusionMatrix(pre_GLM,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+confusionMatrix(pre_GLM,test_set$Disease) #make a confusion matrix
+
+
+```
+
+```{r echo=FALSE}
 #saving parameters and print the results
 Accuracy_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$overall["Accuracy"]
 Sensitivity_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$byClass["Sensitivity"]
@@ -386,13 +449,29 @@ Specificity_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$byClass["Specificit
 Bal.Accuracy_GLM <- confusionMatrix(pre_GLM,test_set$Disease)$byClass["Balanced Accuracy"]
 
 results <- tribble(
-    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
-    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
-    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada,
-    "General Logistic Regression Model", Accuracy_GLM,  Sensitivity_GLM, Specificity_GLM,Bal.Accuracy_GLM)
+    ~Method, 
+    ~Accuracy, 
+    ~Sensitivity,  
+    ~Specificity, 
+    ~Bal.Accuracy,
+    "KNN", 
+    Accuracy_KNN, 
+    Sensitivity_KNN, 
+    Specificity_KNN,
+    Bal.Accuracy_KNN,
+    "Adaboost", 
+    Accuracy_ada,  
+    Sensitivity_ada, 
+    Specificity_ada,
+    Bal.Accuracy_ada,
+    "General Logistic Regression Model", 
+    Accuracy_GLM,  
+    Sensitivity_GLM, 
+    Specificity_GLM,Bal.Accuracy_GLM)
 results
-
 ```
+
+
 Comparing all the three models done we can see that GLM model improve considerly the values of Accuracy, Sensitivty and Specificity. So, we are on the good way, we could stop our research, but we are "hungry" researcher and we want to check if it is still possible to improve our results.
 
 ### Model 4: Decision Tree model
@@ -407,6 +486,10 @@ fit_rpart<-train(Disease~.,
                  trControl=fitControl) #fit model
 pre_rpart<-predict(fit_rpart,test_set) #predict results
 confusionMatrix(pre_rpart,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+
+```
+
+```{r echo=FALSE}
 #saving parameters and print the results
 Accuracy_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$overall["Accuracy"]
 Sensitivity_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$byClass["Sensitivity"]
@@ -414,13 +497,31 @@ Specificity_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$byClass["Specif
 Bal.Accuracy_rpart <- confusionMatrix(pre_rpart,test_set$Disease)$byClass["Balanced Accuracy"]
 
 results <- tribble(
-    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
-    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
-    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada,
-    "General Logistic Regression Model", Accuracy_GLM,  Sensitivity_GLM, Specificity_GLM,Bal.Accuracy_GLM,
-    "Decision Tree Model", Accuracy_rpart,Sensitivity_rpart,Specificity_rpart,Bal.Accuracy_rpart)
+    ~Method, 
+    ~Accuracy, 
+    ~Sensitivity,  
+    ~Specificity, 
+    ~Bal.Accuracy,
+    "KNN", 
+    Accuracy_KNN,  
+    Sensitivity_KNN, 
+    Specificity_KNN,
+    Bal.Accuracy_KNN,
+    "Adaboost", 
+    Accuracy_ada,  
+    Sensitivity_ada, 
+    Specificity_ada,
+    Bal.Accuracy_ada,
+    "General Logistic Regression Model", 
+    Accuracy_GLM,  
+    Sensitivity_GLM, 
+    Specificity_GLM,Bal.Accuracy_GLM,
+    "Decision Tree Model", 
+    Accuracy_rpart,Sensitivity_rpart,Specificity_rpart,Bal.Accuracy_rpart)
 results
 ```
+
+
 Again, checking the results we see a slightly worsen value of accuracy, but despite a lack in specificity we had sensibly improve our prediction sesnsitivty; for this reason, seen the possibility to increase our predictive parameters, it has meant continuing our analysis trying to improve the specificity as well as the sensitivity.
 
 ### Model 5: Random Forest model
@@ -434,7 +535,12 @@ fit_rf<-train(Disease~.,
               method="rf",
               trControl=fitControl) #fit model
 pre_rf<-predict(fit_rf,test_set) #predict results
-confusionMatrix(pre_rf,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+confusionMatrix(pre_rf,test_set$Disease) #make a confusion matrix
+
+```
+
+
+```{r echo=FALSE}
 #saving parameters and print the results
 Accuracy_rf <- confusionMatrix(pre_rf,test_set$Disease)$overall["Accuracy"]
 Sensitivity_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Sensitivity"]
@@ -442,14 +548,40 @@ Specificity_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Specificity"
 Bal.Accuracy_rf <- confusionMatrix(pre_rf,test_set$Disease)$byClass["Balanced Accuracy"]
 
 results <- tribble(
-    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
-    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
-    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada,
-    "General Logistic Regression Model", Accuracy_GLM,  Sensitivity_GLM, Specificity_GLM,Bal.Accuracy_GLM,
-    "Decision Tree Model", Accuracy_rpart,Sensitivity_rpart,Specificity_rpart,Bal.Accuracy_rpart,
-    "Random Forest", Accuracy_rf,  Sensitivity_rf, Specificity_rf,Bal.Accuracy_rf)
+    ~Method, 
+    ~Accuracy, 
+    ~Sensitivity, 
+    ~Specificity, 
+    ~Bal.Accuracy,
+    "KNN", 
+    Accuracy_KNN,  
+    Sensitivity_KNN, 
+    Specificity_KNN,
+    Bal.Accuracy_KNN,
+    "Adaboost", 
+    Accuracy_ada,  
+    Sensitivity_ada, 
+    Specificity_ada,
+    Bal.Accuracy_ada,
+    "General Logistic Regression Model", 
+    Accuracy_GLM,  
+    Sensitivity_GLM, 
+    Specificity_GLM,
+    Bal.Accuracy_GLM,
+    "Decision Tree Model", 
+    Accuracy_rpart,
+    Sensitivity_rpart,
+    Specificity_rpart,
+    Bal.Accuracy_rpart,
+    "Random Forest", 
+    Accuracy_rf,  
+    Sensitivity_rf, 
+    Specificity_rf,
+    Bal.Accuracy_rf)
 results
 ```
+
+
 Our efforts are payed with a strong increase of accuracy (0.85), sensitivty (0.875) and specificity (0.821). All our parmeters are improved and now, once reached the decision point , we have to choose if stop the searching, or try to make some changes to improve again.
 We decide to try another strategy, will ensemble the three best models to see if is possible to get a more accurate result.
 
@@ -471,13 +603,41 @@ Bal.Accuracy_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Bala
 ```{r echo=FALSE}
 #Print final table of results.
 results <- tribble(
-    ~Method, ~Accuracy, ~Sensitivity,  ~Specificity, ~Bal.Accuracy,
-    "KNN", Accuracy_KNN,  Sensitivity_KNN, Specificity_KNN,Bal.Accuracy_KNN,
-    "Adaboost", Accuracy_ada,  Sensitivity_ada, Specificity_ada,Bal.Accuracy_ada,
-    "General Logistic Regression Model", Accuracy_GLM,  Sensitivity_GLM, Specificity_GLM,Bal.Accuracy_GLM,
-    "Decision Tree Model", Accuracy_rpart,Sensitivity_rpart,Specificity_rpart,Bal.Accuracy_rpart,
-    "Random Forest", Accuracy_rf,  Sensitivity_rf, Specificity_rf,Bal.Accuracy_rf,
-    "Ensamble Model",Accuracy_ens,Sensitivity_ens,Specificity_ens,Bal.Accuracy_ens
+    ~Method, 
+    ~Accuracy, 
+    ~Sensitivity,  
+    ~Specificity, 
+    ~Bal.Accuracy,
+    "KNN", 
+    Accuracy_KNN,  
+    Sensitivity_KNN, 
+    Specificity_KNN,
+    Bal.Accuracy_KNN,
+    "Adaboost", 
+    Accuracy_ada,  
+    Sensitivity_ada, 
+    Specificity_ada,
+    Bal.Accuracy_ada,
+    "General Logistic Regression Model", 
+    Accuracy_GLM,  
+    Sensitivity_GLM, 
+    Specificity_GLM,
+    Bal.Accuracy_GLM,
+    "Decision Tree Model", 
+    Accuracy_rpart,
+    Sensitivity_rpart,
+    Specificity_rpart,
+    Bal.Accuracy_rpart,
+    "Random Forest", 
+    Accuracy_rf,  
+    Sensitivity_rf, 
+    Specificity_rf,
+    Bal.Accuracy_rf,
+    "Ensamble Model",
+    Accuracy_ens,
+    Sensitivity_ens,
+    Specificity_ens,
+    Bal.Accuracy_ens
 )
 results
 ```

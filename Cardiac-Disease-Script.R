@@ -241,6 +241,14 @@ test_index<-createDataPartition(data$Disease,times = 1, p=0.2, list=F) #Indexing
 test_set<-data[test_index,] #creating test set
 train_set<-data[-test_index,] #crating training set
 
+
+#Checking for datasets distributions
+summary(train_set)
+summary(test_set)
+
+
+
+
                                                                 #MODELING
 
 # Define train control for k-fold (10-fold here) cross validation
