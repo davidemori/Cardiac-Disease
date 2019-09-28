@@ -5,7 +5,7 @@ date: "26/9/2019"
 output:
   pdf_document: default
   number_sections: default
-theme: lumen
+theme: sandstone
 title: "Heart Disease predicting model"
 toc: true
 ---
@@ -485,7 +485,7 @@ fit_rpart<-train(Disease~.,
                  method="rpart",
                  trControl=fitControl) #fit model
 pre_rpart<-predict(fit_rpart,test_set) #predict results
-confusionMatrix(pre_rpart,test_set$Disease) #make a confusion matrix to calculate Accuracy of the model
+confusionMatrix(pre_rpart,test_set$Disease) #make a confusion matrix
 
 ```
 
@@ -592,15 +592,16 @@ The ensemble strategy involves calculating the average of the results obtained w
 ensemble<-data.frame(pre_GLM,pre_rf,pre_ada)
 pre_ensemble<-as.factor(ifelse(rowMeans(ensemble==1)>0.5,1,0))
 confusionMatrix(pre_ensemble,test_set$Disease)
+
+```
+
+
+```{r echo=FALSE}
 #saving parameters
 Accuracy_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$overall["Accuracy"]
 Sensitivity_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Sensitivity"]
 Specificity_ens<- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Specificity"]
 Bal.Accuracy_ens <- confusionMatrix(pre_ensemble,test_set$Disease)$byClass["Balanced Accuracy"]
-```
-
-
-```{r echo=FALSE}
 #Print final table of results.
 results <- tribble(
     ~Method, 
